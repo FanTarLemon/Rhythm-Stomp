@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Stomp - Friday Night Mode</title>
+    <style>
+        /* ฟอนต์สไตล์ Graffiti / Funky */
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Permanent+Marker&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #110022;
+            color: #ffffff;
+            font-family: 'Fredoka One', cursive;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            /* พื้นหลังสไตล์เวที FNF */
+            background: radial-gradient(circle at 50% 30%, #4a0082 0%, #1a0033 100%);
+            border-left: 5px solid #ff0055;
+            border-right: 5px solid #00f3ff;
+            box-shadow: 0 0 50px rgba(74, 0, 130, 0.5);
+            overflow: hidden;
+        }
+
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .score-board {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            text-shadow: 3px 3px 0px #000;
+        }
+
+        #score-display {
+            font-size: 3.5rem;
+            color: #ffffff;
+            -webkit-text-stroke: 2px #000;
+        }
+
+        #combo-display {
+            font-size: 1.8rem;
+            color: #00f3ff;
+            -webkit-text-stroke: 1px #000;
+        }
+
+        #home-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            pointer-events: auto;
+            background: #ff0055;
+            border: 3px solid #fff;
+            color: #fff;
+            padding: 10px 15px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border-radius: 15px;
+            box-shadow: 0 5px 0 #990033;
+            transition: transform 0.1s;
+        }
+
+        #home-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #990033;
+        }
+
+        #feedback-text {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Permanent Marker', cursive;
+            font-size: 5rem;
+            opacity: 0;
+            transition: opacity 0.1s;
+            text-shadow: 5px 5px 0px #000;
+            z-index: 20;
+            white-space: nowrap;
+        }
+
+        /* Start Screen */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 0, 40, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        h1 {
+            font-family: 'Permanent Marker', cursive;
+            font-size: 4rem;
+            color: #00f3ff;
+            text-shadow: 5px 5px 0 #ff0055;
+            margin-bottom: 10px;
+            text-align: center;
+            transform: rotate(-3deg);
+        }
+
+        p {
+            font-size: 1.3rem;
+            color: #ffcccc;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.6;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .btn {
+            background: #00f3ff;
+            color: #000;
+            border: 4px solid #fff;
+            padding: 20px 50px;
+            font-size: 2rem;
+            font-family: 'Fredoka One', cursive;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 50px;
+            box-shadow: 0 8px 0 #0099aa;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn:active {
+            transform: scale(1.05) translateY(8px);
+            box-shadow: 0 0 0 #0099aa;
+        }
+
+        .controls-hint {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .hint-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+
+        .key-box {
+            width: 45px;
+            height: 45px;
+            border: 3px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-weight: bold;
+            background: #333;
+            box-shadow: 0 4px 0 #000;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <button id="home-btn">🏠 LOBBY</button>
+            <div class="score-board">
+                <div id="score-display">0</div>
+                <div id="combo-display">COMBO: 0</div>
+            </div>
+        </div>
+
+        <div id="feedback-text">SICK!!</div>
+
+        <div id="start-screen">
+            <h1>FRIDAY NIGHT<br>STOMP</h1>
+            <p>Get Freaky on a Friday Night!</p>
+            
+            <div class="controls-hint">
+                <div class="hint-row">
+                    <span>MOVE:</span>
+                    <div class="key-box">◄</div>
+                    <div class="key-box">►</div>
+                </div>
+                <div class="hint-row">
+                    <span>SING:</span>
+                    <div class="key-box" style="background:#af66ce;">A</div> <!-- Purple -->
+                    <div class="key-box" style="background:#55eebb;">S</div> <!-- Blue/Cyan -->
+                    <div class="key-box" style="background:#55ff55;">W</div> <!-- Green -->
+                    <div class="key-box" style="background:#ff5555;">D</div> <!-- Red -->
+                </div>
+            </div>
+            
+            <p style="margin-top:20px; font-size: 1rem; color: #fff;">
+                เลื่อนตัวไปรับโน้ต แล้วกดปุ่มให้ตรงสี!<br>
+                (Move to catch notes & press the matching key)
+            </p>
+            <br>
+            <button class="btn" id="start-btn">PLAY!</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Config ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize Canvas
+        let w, h;
+        function resize() {
+            w = canvas.width = document.getElementById('game-container').clientWidth;
+            h = canvas.height = document.getElementById('game-container').clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Game Constants
+        // Colors mapping: A=Purple(Left), S=Blue(Down), W=Green(Up), D=Red(Right)
+        // Note: In FNF usually Left=Purple, Down=Blue, Up=Green, Right=Red
+        const NOTE_TYPES = {
+            'a': { color: '#af66ce', label: 'A' }, // Purple
+            's': { color: '#00ffff', label: 'S' }, // Cyan/Blue
+            'w': { color: '#00ff00', label: 'W' }, // Green
+            'd': { color: '#ff0000', label: 'D' }  // Red
+        };
+        const ACTION_KEYS = ['a', 's', 'w', 'd'];
+        
+        const LANE_COUNT = 4;
+        const TARGET_Y_RATIO = 0.85; 
+        
+        // Scoring
+        const SCORE_PERFECT = 100;
+        const SCORE_GOOD = 50;
+        const SCORE_MISS = -20;
+        const HIT_WINDOW_PERFECT = 40; 
+        const HIT_WINDOW_GOOD = 90;
+
+        // Game State
+        let isPlaying = false;
+        let score = 0;
+        let combo = 0;
+        let notes = [];
+        let particles = [];
+        let backgroundGridOffset = 0;
+        let speed = 450; 
+        let playerLane = 1; 
+
+        // Audio Context
+        let audioCtx;
+        
+        // --- Classes ---
+
+        class Note {
+            constructor(lane, spawnTime) {
+                this.lane = lane;
+                this.spawnTime = spawnTime;
+                this.active = true;
+                this.y = -70;
+                
+                // Randomize Key Type
+                const keyChar = ACTION_KEYS[Math.floor(Math.random() * ACTION_KEYS.length)];
+                this.requiredKey = keyChar;
+                this.color = NOTE_TYPES[keyChar].color;
+                this.label = NOTE_TYPES[keyChar].label;
+
+                this.width = (w / LANE_COUNT) - 20;
+                this.height = 60;
+                this.arrowDirection = keyChar; // for drawing arrows later
+            }
+
+            update(currentTime) {
+                const timePassed = (currentTime - this.spawnTime) / 1000;
+                this.y = -70 + (timePassed * speed);
+            }
+
+            draw() {
+                const laneWidth = w / LANE_COUNT;
+                const x = (this.lane * laneWidth) + 10;
+                
+                // Draw Arrow Style Note
+                ctx.save();
+                
+                // Shadow / Glow
+                ctx.shadowBlur = 0;
+                ctx.shadowColor = '#000';
+                ctx.fillStyle = this.color;
+                
+                // Draw Note Body (Rounded Box with Border)
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 4;
+                
+                ctx.beginPath();
+                ctx.roundRect(x, this.y, this.width, this.height, 15);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Draw Inner Arrow/Letter
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 35px 'Fredoka One'";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "white";
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = 2;
+                ctx.strokeText(this.label, x + this.width/2, this.y + this.height/2);
+                ctx.fillText(this.label, x + this.width/2, this.y + this.height/2);
+
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 10 + 5;
+                this.speedX = (Math.random() - 0.5) * 15;
+                this.speedY = (Math.random() - 0.5) * 15;
+                this.gravity = 0.5;
+                this.life = 1.0;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.speedY += this.gravity;
+                this.life -= 0.05;
+            }
+
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = "#fff";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                // Draw squares like confetti
+                ctx.rect(this.x, this.y, this.size, this.size);
+                ctx.fill();
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // --- Audio System (Beep Bop Style) ---
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'hit') {
+                // "Beep" sound (Square wave with pitch slide)
+                osc.type = 'square';
+                // Randomize pitch slightly for "singing" effect
+                const pitch = [330, 440, 554, 660][Math.floor(Math.random() * 4)];
+                osc.frequency.setValueAtTime(pitch, now);
+                osc.frequency.linearRampToValueAtTime(pitch + 100, now + 0.1);
+                
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                
+                osc.start();
+                osc.stop(now + 0.15);
+            } else if (type === 'move') {
+                // "Woosh"
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(50, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.1);
+                osc.start();
+                osc.stop(now + 0.1);
+            } else if (type === 'miss') {
+                // "Buzzer" (Sawtooth)
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.linearRampToValueAtTime(50, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start();
+                osc.stop(now + 0.3);
+            }
+        }
+
+        // --- Game Logic ---
+        let nextNoteTime = 0;
+        const beatInterval = 450; 
+
+        function generateNotes(timestamp) {
+            if (timestamp > nextNoteTime) {
+                const lane = Math.floor(Math.random() * LANE_COUNT);
+                notes.push(new Note(lane, timestamp));
+                const rhythm = Math.random() > 0.5 ? 1 : 0.5; // Syncopation
+                nextNoteTime = timestamp + (beatInterval * rhythm * 2);
+            }
+        }
+
+        function updateGame(timestamp) {
+            if (!isPlaying) return;
+
+            // Clear & Draw Background
+            ctx.fillStyle = '#110022';
+            ctx.fillRect(0, 0, w, h);
+            
+            // Spotlight effect
+            const gradient = ctx.createRadialGradient(w/2, 0, 10, w/2, h/2, w);
+            gradient.addColorStop(0, '#4a0082aa');
+            gradient.addColorStop(1, '#00000000');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0,0,w,h);
+
+            drawStageGrid(timestamp);
+            generateNotes(timestamp);
+            drawPlayerAndLanes();
+
+            // Draw Notes
+            for (let i = notes.length - 1; i >= 0; i--) {
+                let note = notes[i];
+                note.update(timestamp);
+                note.draw();
+
+                if (note.y > h) {
+                    notes.splice(i, 1);
+                    combo = 0;
+                    playSound('miss');
+                    showFeedback("MISS..", "#888");
+                    updateUI();
+                }
+            }
+
+            // Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update();
+                p.draw();
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        function drawStageGrid(time) {
+            ctx.strokeStyle = '#ff0055';
+            ctx.lineWidth = 2;
+            const laneWidth = w / LANE_COUNT;
+            
+            // Vertical Lines
+            for (let i = 1; i < LANE_COUNT; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * laneWidth, 0);
+                ctx.lineTo(i * laneWidth, h);
+                ctx.globalAlpha = 0.3;
+                ctx.stroke();
+            }
+
+            // Checkerboard Floor Effect (Moving)
+            backgroundGridOffset = (time * 0.4) % 100;
+            ctx.globalAlpha = 0.15;
+            for (let y = backgroundGridOffset; y < h; y += 100) {
+                ctx.fillStyle = (y/100) % 2 == 0 ? "#ffffff" : "#000000";
+                ctx.fillRect(0, y, w, 50);
+            }
+            ctx.globalAlpha = 1.0;
+        }
+
+        function drawPlayerAndLanes() {
+            const laneWidth = w / LANE_COUNT;
+            const targetY = h * TARGET_Y_RATIO;
+
+            // Target Line (Stage Edge)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+            ctx.fillRect(0, targetY - 10, w, 20);
+
+            // Draw Player Character ("Boyfriend" Icon)
+            const playerX = (playerLane * laneWidth) + (laneWidth/2);
+            const playerY = targetY; 
+            const size = 50;
+
+            // Bounce effect based on beat (simplified using time)
+            const bounce = Math.sin(Date.now() / 100) * 5;
+
+            ctx.save();
+            ctx.translate(playerX, playerY + bounce);
+
+            // Shadow
+            ctx.beginPath();
+            ctx.ellipse(0, 30 - bounce, 25, 10, 0, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fill();
+
+            // Body (Blue Box)
+            ctx.fillStyle = "#00f3ff"; // Boyfriend Blue
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.rect(-25, -25, 50, 50);
+            ctx.fill();
+            ctx.stroke();
+
+            // Cap (Red Visor)
+            ctx.fillStyle = "#ff0000";
+            ctx.beginPath();
+            ctx.rect(-25, -35, 50, 15); // Top of cap
+            ctx.rect(0, -25, 35, 10);   // Visor
+            ctx.fill();
+            ctx.stroke();
+            
+            // Microphone
+            ctx.fillStyle = "#333";
+            ctx.beginPath();
+            ctx.arc(30, 0, 8, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // --- Input Handling ---
+        
+        function handleMovement(direction) {
+            if (direction === 'left') {
+                if (playerLane > 0) {
+                    playerLane--;
+                    playSound('move');
+                }
+            } else if (direction === 'right') {
+                if (playerLane < LANE_COUNT - 1) {
+                    playerLane++;
+                    playSound('move');
+                }
+            }
+        }
+
+        function handleAction(key) {
+            const targetY = h * TARGET_Y_RATIO;
+            let hit = false;
+            
+            for (let i = 0; i < notes.length; i++) {
+                let note = notes[i];
+                
+                if (note.lane === playerLane) {
+                    const diff = Math.abs(note.y - targetY + (note.height/2)); 
+                    
+                    if (diff < HIT_WINDOW_GOOD) {
+                        
+                        if (key === note.requiredKey) {
+                            hit = true;
+                            createExplosion((playerLane * (w/LANE_COUNT)) + (w/LANE_COUNT/2), targetY, note.color);
+                            playSound('hit');
+
+                            if (diff < HIT_WINDOW_PERFECT) {
+                                score += SCORE_PERFECT;
+                                combo++;
+                                showFeedback("SICK!!", "#00f3ff");
+                            } else {
+                                score += SCORE_GOOD;
+                                combo++;
+                                showFeedback("GOOD", "#00ff00");
+                            }
+                            
+                            notes.splice(i, 1);
+                            break;
+                        } else {
+                            playSound('miss');
+                            showFeedback("WRONG!", "#ff0000");
+                            combo = 0;
+                        }
+                    }
+                }
+            }
+            updateUI();
+        }
+
+        function createExplosion(x, y, color) {
+            for (let i = 0; i < 15; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function showFeedback(text, color) {
+            const el = document.getElementById('feedback-text');
+            el.innerText = text;
+            el.style.color = color;
+            el.style.opacity = 1;
+            el.style.transform = 'translate(-50%, -50%) scale(1.2) rotate(-5deg)';
+            
+            setTimeout(() => {
+                el.style.opacity = 0;
+                el.style.transform = 'translate(-50%, -50%) scale(1) rotate(0deg)';
+            }, 300);
+        }
+
+        function updateUI() {
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('combo-display').innerText = "COMBO: " + combo;
+        }
+
+        // Keyboard Listener
+        window.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            
+            const code = e.code;
+
+            if (code === 'ArrowLeft') handleMovement('left');
+            else if (code === 'ArrowRight') handleMovement('right');
+            
+            else if (code === 'KeyW') handleAction('w');
+            else if (code === 'KeyA') handleAction('a');
+            else if (code === 'KeyS') handleAction('s');
+            else if (code === 'KeyD') handleAction('d');
+        });
+
+        // Start Game
+        document.getElementById('start-btn').addEventListener('click', () => {
+            initAudio();
+            document.getElementById('start-screen').style.display = 'none';
+            isPlaying = true;
+            score = 0;
+            combo = 0;
+            notes = [];
+            playerLane = 1;
+            updateUI();
+            requestAnimationFrame(updateGame);
+        });
+
+        document.getElementById('home-btn').addEventListener('click', () => {
+            isPlaying = false; 
+            document.getElementById('start-screen').style.display = 'flex'; 
+        });
+
+    </script>
+</body>
+</html>
